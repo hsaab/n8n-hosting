@@ -1,0 +1,170 @@
+# ---------------------------------------------------------------------------------------------------------------------
+# TERRAFORM SENSITIVE FILES
+# ---------------------------------------------------------------------------------------------------------------------
+
+# Terraform variable files with actual values
+*.tfvars
+!*.tfvars.example
+
+# Terraform state files - contain sensitive information
+*.tfstate
+*.tfstate.backup
+*.tfstate.lock.info
+
+# Terraform plan files
+*.tfplan
+*.tfplan.*
+
+# Terraform directory
+.terraform/
+.terraform.lock.hcl
+
+# ---------------------------------------------------------------------------------------------------------------------
+# ENVIRONMENT AND CONFIGURATION FILES
+# ---------------------------------------------------------------------------------------------------------------------
+
+# Environment files
+.env
+.env.local
+.env.development
+.env.production
+.env.staging
+
+# Docker Compose override files
+docker-compose.override.yml
+docker-compose.override.yaml
+
+# ---------------------------------------------------------------------------------------------------------------------
+# AWS AND CLOUD PROVIDER FILES
+# ---------------------------------------------------------------------------------------------------------------------
+
+# AWS credentials
+.aws/
+**/credentials
+**/config
+
+# Cloud provider CLI configs
+.azure/
+.gcp/
+
+# ---------------------------------------------------------------------------------------------------------------------
+# IDE AND EDITOR FILES
+# ---------------------------------------------------------------------------------------------------------------------
+
+# Visual Studio Code
+.vscode/
+*.code-workspace
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+
+# ---------------------------------------------------------------------------------------------------------------------
+# OPERATING SYSTEM FILES
+# ---------------------------------------------------------------------------------------------------------------------
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+.directory
+.Trash-*
+
+# ---------------------------------------------------------------------------------------------------------------------
+# BACKUP AND TEMPORARY FILES
+# ---------------------------------------------------------------------------------------------------------------------
+
+# Backup files
+*.backup
+*.bak
+*.orig
+*.tmp
+*.temp
+
+# Log files
+*.log
+logs/
+
+# ---------------------------------------------------------------------------------------------------------------------
+# SECURITY AND SECRETS
+# ---------------------------------------------------------------------------------------------------------------------
+
+# SSH keys
+*.pem
+*.key
+id_rsa*
+id_ed25519*
+
+# SSL certificates
+*.crt
+*.cert
+*.p12
+*.pfx
+
+# API keys and secrets
+secrets.yml
+secrets.yaml
+secrets.json
+*password*
+*key*.txt
+
+# ---------------------------------------------------------------------------------------------------------------------
+# PROJECT SPECIFIC FILES
+# ---------------------------------------------------------------------------------------------------------------------
+
+# Node.js (if using any Node.js tools)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Python (if using any Python tools)
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+venv/
+env/
+.venv/
+
+# ---------------------------------------------------------------------------------------------------------------------
+# COMMENTS
+# ---------------------------------------------------------------------------------------------------------------------
+
+# This gitignore protects:
+# 1. Terraform state files containing sensitive infrastructure details
+# 2. Variable files with actual passwords and secrets
+# 3. Environment files with configuration
+# 4. IDE and OS-specific files
+# 5. Any backup or temporary files that might contain sensitive data
+#
+# Always review files before committing to ensure no secrets are included!

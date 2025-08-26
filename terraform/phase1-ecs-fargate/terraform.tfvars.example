@@ -1,0 +1,82 @@
+# ---------------------------------------------------------------------------------------------------------------------
+# EXAMPLE TERRAFORM VARIABLES FILE
+# Copy this file to terraform.tfvars and fill in your actual values
+# ---------------------------------------------------------------------------------------------------------------------
+
+# AWS Region
+aws_region = "us-east-1"
+
+# ---------------------------------------------------------------------------------------------------------------------
+# EXISTING INFRASTRUCTURE
+# Replace these with your actual VPC and subnet IDs
+# ---------------------------------------------------------------------------------------------------------------------
+
+vpc_id = "vpc-xxxxxxxxxxxxxxxxx"
+
+# Private subnets for ECS tasks (at least 2 for high availability)
+private_subnet_ids = [
+  "subnet-xxxxxxxxxxxxxxxxx",
+  "subnet-yyyyyyyyyyyyyyyyy"
+]
+
+# Public subnets for ALB (at least 2 for high availability)
+public_subnet_ids = [
+  "subnet-aaaaaaaaaaaaaaaa",
+  "subnet-bbbbbbbbbbbbbbb"
+]
+
+# ---------------------------------------------------------------------------------------------------------------------
+# CLUSTER CONFIGURATION
+# ---------------------------------------------------------------------------------------------------------------------
+
+cluster_name = "n8n-cluster"
+service_name = "n8n-service"
+
+# ---------------------------------------------------------------------------------------------------------------------
+# DATABASE CONFIGURATION
+# These replace your .env file values
+# IMPORTANT: Use strong, unique passwords in production!
+# ---------------------------------------------------------------------------------------------------------------------
+
+# Database name and users (optional - defaults in variables.tf)
+postgres_db               = "n8n"
+postgres_user             = "root_user"
+postgres_non_root_user    = "n8n_user"
+
+# REQUIRED: Database passwords and encryption key
+postgres_password          = "changeme-strong-password-123!"
+postgres_non_root_password = "changeme-another-strong-password-456!"
+encryption_key            = "changeme-random-string-789!"
+
+# ---------------------------------------------------------------------------------------------------------------------
+# OPTIONAL: HTTPS CONFIGURATION
+# Uncomment if you have an ACM certificate
+# ---------------------------------------------------------------------------------------------------------------------
+
+# certificate_arn = "arn:aws:acm:us-east-1:123456789012:certificate/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+# domain_name = "n8n.yourdomain.com"
+
+# ---------------------------------------------------------------------------------------------------------------------
+# RDS DATABASE CONFIGURATION (Optional - defaults are set in variables.tf)
+# Uncomment to override defaults for the managed PostgreSQL database
+# ---------------------------------------------------------------------------------------------------------------------
+
+# rds_engine_version         = "16.4"           # PostgreSQL version
+# rds_instance_class         = "db.t3.micro"    # Instance size (free tier eligible)
+# rds_allocated_storage      = 20               # Storage in GB
+# rds_backup_retention_period = 7               # Days to keep backups
+# rds_multi_az              = false             # High availability (costs more)
+# rds_performance_insights_enabled = false      # Performance monitoring
+# rds_deletion_protection   = false             # Prevent accidental deletion
+
+# ---------------------------------------------------------------------------------------------------------------------
+# CONTAINER RESOURCE SIZING (Optional - defaults are set in variables.tf)
+# Uncomment to override defaults
+# ---------------------------------------------------------------------------------------------------------------------
+
+# n8n_cpu           = 512   # 0.5 vCPU
+# n8n_memory        = 1024  # 1 GB
+# n8n_worker_cpu    = 512   # 0.5 vCPU  
+# n8n_worker_memory = 1024  # 1 GB
+# redis_cpu         = 256   # 0.25 vCPU (PostgreSQL now managed by RDS)
+# redis_memory      = 512   # 512 MB
