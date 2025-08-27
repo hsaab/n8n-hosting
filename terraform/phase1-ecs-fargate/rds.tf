@@ -13,6 +13,21 @@ resource "aws_db_subnet_group" "n8n" {
   }
 }
 
+# Parameter group to allow non-SSL connections
+resource "aws_db_parameter_group" "n8n_postgres" {
+  family = "postgres16"
+  name   = "${var.cluster_name}-postgres-params"
+
+  parameter {
+    name  = "rds.force_ssl"
+    value = "0"
+  }
+
+  tags = {
+    Name = "${var.cluster_name} PostgreSQL Parameter Group"
+  }
+}
+
 # Security group for RDS
 resource "aws_security_group" "rds" {
   name        = "${var.cluster_name}-rds-sg"
@@ -78,6 +93,9 @@ resource "aws_db_instance" "n8n" {
   deletion_protection       = var.rds_deletion_protection
   skip_final_snapshot      = var.rds_skip_final_snapshot
   final_snapshot_identifier = var.rds_skip_final_snapshot ? null : "${var.cluster_name}-postgres-final-snapshot-${formatdate("YYYY-MM-DD-hhmm", timestamp())}"
+  
+  # Disable SSL requirement for initial setup
+  parameter_group_name = aws_db_parameter_group.n8n_postgres.name
   
   tags = {
     Name = "${var.cluster_name} PostgreSQL Database"

@@ -48,7 +48,7 @@ variable "service_name" {
 variable "n8n_image" {
   description = "N8N Docker image"
   type        = string
-  default     = "docker.n8n.io/n8nio/n8n:latest"
+  default     = "n8nio/n8n:1.63.4"
 }
 
 variable "redis_image" {

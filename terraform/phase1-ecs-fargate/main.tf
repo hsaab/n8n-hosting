@@ -142,6 +142,29 @@ resource "aws_iam_role" "ecs_task" {
   })
 }
 
+# EFS access policy for task role
+resource "aws_iam_role_policy" "ecs_task_efs" {
+  name = "${var.cluster_name}-task-efs-policy"
+  role = aws_iam_role.ecs_task.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "elasticfilesystem:AccessPointExists",
+          "elasticfilesystem:AccessPoint",
+          "elasticfilesystem:PutFileSystemPolicy",
+          "elasticfilesystem:GetFileSystemPolicy",
+          "elasticfilesystem:DeleteFileSystemPolicy",
+        ]
+        Resource = aws_efs_access_point.n8n_data.arn
+      }
+    ]
+  })
+}
+
 # ---------------------------------------------------------------------------------------------------------------------
 # SECURITY GROUPS
 # Control network access between containers and from ALB
@@ -245,6 +268,28 @@ resource "aws_efs_file_system" "n8n_storage" {
 
   tags = {
     Name = "${var.cluster_name}-n8n-storage"
+  }
+}
+
+resource "aws_efs_access_point" "n8n_data" {
+  file_system_id = aws_efs_file_system.n8n_storage.id
+
+  posix_user {
+    uid = 1000
+    gid = 1000
+  }
+
+  root_directory {
+    path = "/n8n-data"
+    creation_info {
+      owner_uid   = 1000
+      owner_gid   = 1000
+      permissions = 755
+    }
+  }
+
+  tags = {
+    Name = "${var.cluster_name}-n8n-access-point"
   }
 }
 

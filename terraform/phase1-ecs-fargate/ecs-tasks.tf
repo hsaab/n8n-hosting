@@ -63,7 +63,7 @@ resource "aws_ecs_task_definition" "redis" {
 
     efs_volume_configuration {
       file_system_id     = aws_efs_file_system.n8n_storage.id
-      root_directory     = "/redis"
+      root_directory     = "/"
       transit_encryption = "ENABLED"
     }
   }
@@ -79,6 +79,10 @@ resource "aws_ecs_task_definition" "n8n" {
   requires_compatibilities = ["FARGATE"]
   cpu                      = var.n8n_cpu
   memory                   = var.n8n_memory
+  # Force new revision
+  tags = {
+    Version = "v6"
+  }
   execution_role_arn       = aws_iam_role.ecs_task_execution.arn
   task_role_arn           = aws_iam_role.ecs_task.arn
 
@@ -87,6 +91,9 @@ resource "aws_ecs_task_definition" "n8n" {
       name      = "n8n"
       image     = var.n8n_image
       essential = true
+      
+      # Run as user 1000
+      user = "1000"
       
       portMappings = [
         {
@@ -120,6 +127,22 @@ resource "aws_ecs_task_definition" "n8n" {
         {
           name  = "QUEUE_HEALTH_CHECK_ACTIVE"
           value = "true"
+        },
+        {
+          name  = "DB_POSTGRESDB_SSL_MODE"
+          value = "disable"
+        },
+        {
+          name  = "N8N_SECURE_COOKIE"
+          value = "false"
+        },
+        {
+          name  = "N8N_LOG_LEVEL"
+          value = "debug"
+        },
+        {
+          name  = "N8N_LOG_OUTPUT"
+          value = "console"
         }
       ]
 
@@ -131,11 +154,11 @@ resource "aws_ecs_task_definition" "n8n" {
         },
         {
           name      = "DB_POSTGRESDB_USER"
-          valueFrom = "${aws_secretsmanager_secret.n8n_secrets.arn}:postgres_non_root_user::"
+          valueFrom = "${aws_secretsmanager_secret.n8n_secrets.arn}:postgres_user::"
         },
         {
           name      = "DB_POSTGRESDB_PASSWORD"
-          valueFrom = "${aws_secretsmanager_secret.n8n_secrets.arn}:postgres_non_root_password::"
+          valueFrom = "${aws_secretsmanager_secret.n8n_secrets.arn}:postgres_password::"
         },
         {
           name      = "N8N_ENCRYPTION_KEY"
@@ -147,17 +170,12 @@ resource "aws_ecs_task_definition" "n8n" {
       mountPoints = [
         {
           sourceVolume  = "n8n-storage"
-          containerPath = "/home/node/.n8n"
+          containerPath = "/data"
         }
       ]
 
-      # Dependencies - wait for RDS and redis
-      dependsOn = [
-        {
-          containerName = "wait-for-dependencies"
-          condition     = "SUCCESS"
-        }
-      ]
+      # Remove user constraint to run as root, then create directories with proper ownership
+      # user = "1000"
 
       logConfiguration = {
         logDriver = "awslogs"
@@ -167,37 +185,21 @@ resource "aws_ecs_task_definition" "n8n" {
           "awslogs-stream-prefix" = "ecs"
         }
       }
-    },
-    {
-      # Helper container to wait for dependencies
-      name      = "wait-for-dependencies"
-      image     = "busybox:latest"
-      essential = false
-      
-      command = [
-        "sh", "-c",
-        "until nc -z ${aws_db_instance.n8n.address} 5432 && nc -z redis.n8n.local 6379; do echo 'Waiting for RDS and redis...'; sleep 5; done; echo 'Dependencies are ready!'"
-      ]
-
-      logConfiguration = {
-        logDriver = "awslogs"
-        options = {
-          "awslogs-group"         = aws_cloudwatch_log_group.n8n.name
-          "awslogs-region"        = var.aws_region
-          "awslogs-stream-prefix" = "init"
-        }
-      }
     }
   ])
 
-  # EFS volume configuration
+  # EFS volume configuration with access point
   volume {
     name = "n8n-storage"
 
     efs_volume_configuration {
-      file_system_id     = aws_efs_file_system.n8n_storage.id
-      root_directory     = "/n8n"
-      transit_encryption = "ENABLED"
+      file_system_id          = aws_efs_file_system.n8n_storage.id
+      root_directory          = "/"
+      transit_encryption      = "ENABLED"
+      authorization_config {
+        access_point_id = aws_efs_access_point.n8n_data.id
+        iam            = "ENABLED"
+      }
     }
   }
 }
@@ -221,8 +223,8 @@ resource "aws_ecs_task_definition" "n8n_worker" {
       image     = var.n8n_image
       essential = true
       
-      # Worker command from docker-compose
-      command = ["worker"]
+      # Run as user 1000
+      user = "1000"
 
       # Same environment as main n8n
       environment = [
@@ -249,6 +251,22 @@ resource "aws_ecs_task_definition" "n8n_worker" {
         {
           name  = "QUEUE_HEALTH_CHECK_ACTIVE"
           value = "true"
+        },
+        {
+          name  = "DB_POSTGRESDB_SSL_MODE"
+          value = "disable"
+        },
+        {
+          name  = "N8N_SECURE_COOKIE"
+          value = "false"
+        },
+        {
+          name  = "N8N_LOG_LEVEL"
+          value = "debug"
+        },
+        {
+          name  = "N8N_LOG_OUTPUT"
+          value = "console"
         }
       ]
 
@@ -259,11 +277,11 @@ resource "aws_ecs_task_definition" "n8n_worker" {
         },
         {
           name      = "DB_POSTGRESDB_USER"
-          valueFrom = "${aws_secretsmanager_secret.n8n_secrets.arn}:postgres_non_root_user::"
+          valueFrom = "${aws_secretsmanager_secret.n8n_secrets.arn}:postgres_user::"
         },
         {
           name      = "DB_POSTGRESDB_PASSWORD"
-          valueFrom = "${aws_secretsmanager_secret.n8n_secrets.arn}:postgres_non_root_password::"
+          valueFrom = "${aws_secretsmanager_secret.n8n_secrets.arn}:postgres_password::"
         },
         {
           name      = "N8N_ENCRYPTION_KEY"
@@ -274,9 +292,12 @@ resource "aws_ecs_task_definition" "n8n_worker" {
       mountPoints = [
         {
           sourceVolume  = "n8n-storage"
-          containerPath = "/home/node/.n8n"
+          containerPath = "/data"
         }
       ]
+
+      # Remove user constraint to run as root, then create directories with proper ownership
+      # user = "1000"
 
       logConfiguration = {
         logDriver = "awslogs"
@@ -293,9 +314,13 @@ resource "aws_ecs_task_definition" "n8n_worker" {
     name = "n8n-storage"
 
     efs_volume_configuration {
-      file_system_id     = aws_efs_file_system.n8n_storage.id
-      root_directory     = "/n8n"
-      transit_encryption = "ENABLED"
+      file_system_id          = aws_efs_file_system.n8n_storage.id
+      root_directory          = "/"
+      transit_encryption      = "ENABLED"
+      authorization_config {
+        access_point_id = aws_efs_access_point.n8n_data.id
+        iam            = "ENABLED"
+      }
     }
   }
 }
@@ -315,8 +340,8 @@ resource "aws_ecs_service" "redis" {
 
   network_configuration {
     subnets          = var.private_subnet_ids
-    security_groups  = [aws_security_group.redis.id]
-    assign_public_ip = false
+    security_groups  = [aws_security_group.ecs_tasks.id]
+    assign_public_ip = true
   }
 
   service_registries {
@@ -335,7 +360,7 @@ resource "aws_ecs_service" "n8n" {
   network_configuration {
     subnets          = var.private_subnet_ids
     security_groups  = [aws_security_group.ecs_tasks.id]
-    assign_public_ip = false
+    assign_public_ip = true
   }
 
   load_balancer {
@@ -362,7 +387,7 @@ resource "aws_ecs_service" "n8n_worker" {
   network_configuration {
     subnets          = var.private_subnet_ids
     security_groups  = [aws_security_group.ecs_tasks.id]
-    assign_public_ip = false
+    assign_public_ip = true
   }
 
   depends_on = [

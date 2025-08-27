@@ -19,12 +19,10 @@ resource "aws_secretsmanager_secret_version" "n8n_secrets" {
   secret_id = aws_secretsmanager_secret.n8n_secrets.id
 
   secret_string = jsonencode({
-    postgres_db                = var.postgres_db
-    postgres_user              = var.postgres_user
-    postgres_password          = var.postgres_password
-    postgres_non_root_user     = var.postgres_non_root_user
-    postgres_non_root_password = var.postgres_non_root_password
-    encryption_key             = var.encryption_key
+    postgres_db       = var.postgres_db
+    postgres_user     = var.postgres_user
+    postgres_password = var.postgres_password
+    encryption_key    = var.encryption_key
   })
 }
 
