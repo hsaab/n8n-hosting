@@ -1,0 +1,152 @@
+# ---------------------------------------------------------------------------------------------------------------------
+# PHASE 2: ECS WITH EC2 INSTANCES + ELASTICACHE
+# Example Terraform variables file for deploying n8n on ECS with EC2 and ElastiCache
+# Copy this file to terraform.tfvars and fill in your actual values
+# ---------------------------------------------------------------------------------------------------------------------
+
+# AWS Region
+aws_region = "us-east-1"
+
+# ---------------------------------------------------------------------------------------------------------------------
+# EXISTING INFRASTRUCTURE
+# Replace these with your actual VPC and subnet IDs
+# ---------------------------------------------------------------------------------------------------------------------
+
+vpc_id = "vpc-xxxxxxxxxxxxxxxxx"
+
+# Private subnets for ECS tasks and EC2 instances (at least 2 for high availability)
+private_subnet_ids = [
+  "subnet-xxxxxxxxxxxxxxxxx",
+  "subnet-yyyyyyyyyyyyyyyyy"
+]
+
+# Public subnets for ALB (at least 2 for high availability)
+public_subnet_ids = [
+  "subnet-aaaaaaaaaaaaaaaa",
+  "subnet-bbbbbbbbbbbbbbb"
+]
+
+# ---------------------------------------------------------------------------------------------------------------------
+# CLUSTER CONFIGURATION
+# ---------------------------------------------------------------------------------------------------------------------
+
+cluster_name = "n8n-hs-cluster"
+service_name = "n8n-hs-service"
+
+# ---------------------------------------------------------------------------------------------------------------------
+# EC2 CONFIGURATION
+# Instance configuration for the ECS cluster
+# ---------------------------------------------------------------------------------------------------------------------
+
+instance_type    = "t3.medium"     # Recommended for production workloads
+min_size        = 1                # Minimum number of instances
+max_size        = 3                # Maximum number of instances  
+desired_capacity = 2                # Desired number of instances
+
+# Optional: EC2 Key Pair for SSH access (leave empty to disable SSH)
+key_name    = ""
+enable_ssh  = false
+ssh_allowed_ips = []  # Add your IP here if enabling SSH, e.g., ["1.2.3.4/32"]
+
+# ---------------------------------------------------------------------------------------------------------------------
+# CAPACITY PROVIDER CONFIGURATION  
+# On-Demand instances for reliable, predictable infrastructure
+# ---------------------------------------------------------------------------------------------------------------------
+
+# All instances will be On-Demand for reliability and predictable costs
+
+# ---------------------------------------------------------------------------------------------------------------------
+# DATABASE CONFIGURATION
+# These replace your .env file values
+# IMPORTANT: Use strong, unique passwords in production!
+# ---------------------------------------------------------------------------------------------------------------------
+
+# Database name and users (optional - defaults in variables.tf)
+postgres_db               = "n8n"
+postgres_user             = "root_user"
+postgres_non_root_user    = "n8n_user"
+
+# REQUIRED: Database passwords and encryption key
+postgres_password          = "changeme-strong-password-123!"
+postgres_non_root_password = "changeme-another-strong-password-456!"
+encryption_key            = "changeme-random-string-789!"
+
+# ---------------------------------------------------------------------------------------------------------------------
+# ELASTICACHE REDIS CONFIGURATION
+# Managed Redis replacing containerized Redis from Phase 1
+# ---------------------------------------------------------------------------------------------------------------------
+
+redis_node_type          = "cache.t4g.micro"  # Smallest instance for learning
+redis_num_cache_clusters = 1                  # Single node (no replication)
+redis_parameter_group    = "default.redis7"   # Redis 7 parameters
+redis_engine_version     = "7.0"              # Redis version
+
+# Security settings (simplified for learning)
+redis_transit_encryption = false              # Disable TLS for simplicity
+redis_auth_token        = ""                 # No auth for learning environment
+
+# Maintenance windows (UTC)
+redis_maintenance_window = "sun:05:00-sun:06:00"
+redis_snapshot_retention = 1                  # Keep snapshots for 1 day
+redis_snapshot_window   = "02:00-03:00"
+
+# Optional: SNS topic for notifications
+redis_notification_topic_arn = ""
+
+# ---------------------------------------------------------------------------------------------------------------------
+# OPTIONAL: HTTPS CONFIGURATION
+# Uncomment if you have an ACM certificate
+# ---------------------------------------------------------------------------------------------------------------------
+
+# certificate_arn = "arn:aws:acm:us-east-1:123456789012:certificate/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+# domain_name = "n8n.yourdomain.com"
+
+# ---------------------------------------------------------------------------------------------------------------------
+# RDS DATABASE CONFIGURATION (Optional - defaults are set in variables.tf)
+# Uncomment to override defaults for the managed PostgreSQL database
+# ---------------------------------------------------------------------------------------------------------------------
+
+# rds_engine_version         = "16.4"           # PostgreSQL version
+# rds_instance_class         = "db.t3.micro"    # Instance size (free tier eligible)
+# rds_allocated_storage      = 20               # Storage in GB
+# rds_backup_retention_period = 7               # Days to keep backups
+# rds_multi_az              = false             # High availability (costs more)
+# rds_performance_insights_enabled = false      # Performance monitoring
+# rds_deletion_protection   = false             # Prevent accidental deletion
+
+# ---------------------------------------------------------------------------------------------------------------------
+# CONTAINER RESOURCE SIZING (Optional - defaults are set in variables.tf)
+# Uncomment to override defaults
+# ---------------------------------------------------------------------------------------------------------------------
+
+# n8n_cpu           = 512   # 0.5 vCPU
+# n8n_memory        = 1024  # 1 GB
+# n8n_worker_cpu    = 512   # 0.5 vCPU  
+# n8n_worker_memory = 1024  # 1 GB
+
+# ---------------------------------------------------------------------------------------------------------------------
+# AUTO SCALING CONFIGURATION (Optional - defaults are set in variables.tf)
+# ---------------------------------------------------------------------------------------------------------------------
+
+# target_capacity    = 100  # Target capacity percentage for capacity provider
+# scale_in_cooldown  = 300  # Cooldown in seconds before scale-in
+# scale_out_cooldown = 300  # Cooldown in seconds before scale-out
+
+# ---------------------------------------------------------------------------------------------------------------------
+# MONITORING AND LOGGING (Optional - defaults are set in variables.tf)
+# ---------------------------------------------------------------------------------------------------------------------
+
+# log_retention_days        = 7     # Days to keep CloudWatch logs
+# enable_container_insights = true  # Enable Container Insights for better monitoring
+
+# ---------------------------------------------------------------------------------------------------------------------
+# TAGS (Optional - defaults are set in variables.tf)
+# ---------------------------------------------------------------------------------------------------------------------
+
+tags = {
+  Environment = "learning"
+  ManagedBy   = "terraform"
+  Application = "n8n"
+  Phase       = "phase2-ec2"
+  CostCenter  = "engineering"
+}

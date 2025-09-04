@@ -6,65 +6,60 @@
 # ALB DNS name for accessing n8n
 output "load_balancer_dns_name" {
   description = "DNS name of the load balancer"
-  value       = aws_lb.n8n.dns_name
+  value       = module.networking.alb_dns_name
 }
 
 output "load_balancer_zone_id" {
   description = "Zone ID of the load balancer"
-  value       = aws_lb.n8n.zone_id
+  value       = module.networking.alb_zone_id
 }
 
 # ECS Cluster information
 output "ecs_cluster_name" {
   description = "Name of the ECS cluster"
-  value       = aws_ecs_cluster.n8n.name
+  value       = module.compute.ecs_cluster_name
 }
 
 output "ecs_cluster_id" {
   description = "ID of the ECS cluster"
-  value       = aws_ecs_cluster.n8n.id
+  value       = module.compute.ecs_cluster_id
 }
 
 # RDS Database information
 output "rds_endpoint" {
   description = "RDS instance endpoint"
-  value       = aws_db_instance.n8n.endpoint
+  value       = module.storage.rds_endpoint
   sensitive   = false
 }
 
 output "rds_address" {
   description = "RDS instance hostname/address"
-  value       = aws_db_instance.n8n.address
+  value       = module.storage.rds_address
   sensitive   = false
 }
 
 output "rds_port" {
   description = "RDS instance port"
-  value       = aws_db_instance.n8n.port
-}
-
-output "rds_database_name" {
-  description = "RDS database name"
-  value       = aws_db_instance.n8n.db_name
+  value       = module.storage.rds_port
 }
 
 # EFS information
 output "efs_file_system_id" {
   description = "EFS file system ID"
-  value       = aws_efs_file_system.n8n_storage.id
+  value       = module.storage.efs_file_system_id
 }
 
 # Secrets Manager
 output "secrets_manager_arn" {
   description = "ARN of the Secrets Manager secret"
-  value       = aws_secretsmanager_secret.n8n_secrets.arn
+  value       = module.security.n8n_secrets_arn
   sensitive   = true
 }
 
 # Service Discovery
 output "service_discovery_namespace_id" {
   description = "Service discovery namespace ID"
-  value       = aws_service_discovery_private_dns_namespace.n8n.id
+  value       = module.networking.service_discovery_namespace_id
 }
 
 # Instructions for connecting
@@ -74,24 +69,24 @@ output "connection_instructions" {
     Your n8n instance has been deployed with the following configuration:
 
     📋 Application Access:
-    - Load Balancer: ${aws_lb.n8n.dns_name}
-    - Access your n8n instance at: http://${aws_lb.n8n.dns_name}
+    - Load Balancer: ${module.networking.alb_dns_name}
+    - Access your n8n instance at: http://${module.networking.alb_dns_name}
     
     🗄️  Database (RDS PostgreSQL):
-    - Endpoint: ${aws_db_instance.n8n.endpoint}
-    - Database: ${aws_db_instance.n8n.db_name}
-    - Port: ${aws_db_instance.n8n.port}
+    - Endpoint: ${module.storage.rds_endpoint}
+    - Database: ${var.postgres_db}
+    - Port: ${module.storage.rds_port}
     
     📁 Storage:
-    - EFS File System ID: ${aws_efs_file_system.n8n_storage.id}
-    - Used for: n8n application data and Redis persistence
+    - EFS File System ID: ${module.storage.efs_file_system_id}
+    - Used for: n8n application data
     
     🔐 Secrets:
-    - Stored in AWS Secrets Manager: ${aws_secretsmanager_secret.n8n_secrets.name}
+    - Stored in AWS Secrets Manager: ${module.security.n8n_secrets_name}
     
     ⚙️  ECS Resources:
-    - Cluster: ${aws_ecs_cluster.n8n.name}
-    - Services: n8n, n8n-worker, redis
+    - Cluster: ${module.compute.ecs_cluster_name}
+    - Service: n8n (Fargate)
     - Database: Managed by RDS (no longer containerized)
     
     🚀 Next Steps:

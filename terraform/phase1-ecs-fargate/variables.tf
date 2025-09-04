@@ -108,7 +108,7 @@ variable "redis_memory" {
 variable "rds_engine_version" {
   description = "PostgreSQL engine version for RDS"
   type        = string
-  default     = "16.4"
+  default     = "16.8"
 }
 
 variable "rds_instance_class" {
@@ -220,6 +220,34 @@ variable "domain_name" {
   description = "Domain name for n8n (optional)"
   type        = string
   default     = ""
+}
+
+# ---------------------------------------------------------------------------------------------------------------------
+# ENVIRONMENT CONFIGURATION
+# ---------------------------------------------------------------------------------------------------------------------
+
+variable "environment" {
+  description = "Environment name (e.g., prod, staging, dev)"
+  type        = string
+  default     = "learning"
+}
+
+variable "n8n_encryption_key" {
+  description = "N8N encryption key for securing credentials"
+  type        = string
+  sensitive   = true
+}
+
+variable "n8n_image_tag" {
+  description = "N8N Docker image tag"
+  type        = string
+  default     = "1.63.4"
+}
+
+variable "n8n_desired_count" {
+  description = "Desired number of N8N tasks"
+  type        = number
+  default     = 1
 }
 
 # ---------------------------------------------------------------------------------------------------------------------

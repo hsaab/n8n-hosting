@@ -1,73 +1,18 @@
 # ---------------------------------------------------------------------------------------------------------------------
+# ECS CLUSTER
+# This is just a logical grouping - doesn't create any actual infrastructure
+# ---------------------------------------------------------------------------------------------------------------------
+
+resource "aws_ecs_cluster" "n8n" {
+  name = var.cluster_name
+}
+
+# ---------------------------------------------------------------------------------------------------------------------
 # ECS TASK DEFINITIONS
 # These are like docker-compose service definitions - they specify container configurations
 # ---------------------------------------------------------------------------------------------------------------------
 
-# ---------------------------------------------------------------------------------------------------------------------
-# REDIS TASK DEFINITION
-# ---------------------------------------------------------------------------------------------------------------------
-
-resource "aws_ecs_task_definition" "redis" {
-  family                   = "${var.cluster_name}-redis"
-  network_mode             = "awsvpc"
-  requires_compatibilities = ["FARGATE"]
-  cpu                      = var.redis_cpu
-  memory                   = var.redis_memory
-  execution_role_arn       = aws_iam_role.ecs_task_execution.arn
-  task_role_arn           = aws_iam_role.ecs_task.arn
-
-  container_definitions = jsonencode([
-    {
-      name      = "redis"
-      image     = var.redis_image
-      essential = true
-      
-      portMappings = [
-        {
-          containerPort = 6379
-          protocol      = "tcp"
-        }
-      ]
-
-      # Mount EFS for persistent storage
-      mountPoints = [
-        {
-          sourceVolume  = "redis-storage"
-          containerPath = "/data"
-        }
-      ]
-
-      # Health check from docker-compose
-      healthCheck = {
-        command     = ["CMD", "redis-cli", "ping"]
-        interval    = 5
-        timeout     = 5
-        retries     = 10
-        startPeriod = 30
-      }
-
-      logConfiguration = {
-        logDriver = "awslogs"
-        options = {
-          "awslogs-group"         = aws_cloudwatch_log_group.redis.name
-          "awslogs-region"        = var.aws_region
-          "awslogs-stream-prefix" = "ecs"
-        }
-      }
-    }
-  ])
-
-  # EFS volume configuration
-  volume {
-    name = "redis-storage"
-
-    efs_volume_configuration {
-      file_system_id     = aws_efs_file_system.n8n_storage.id
-      root_directory     = "/"
-      transit_encryption = "ENABLED"
-    }
-  }
-}
+# Redis removed - using RDS PostgreSQL for data persistence
 
 # ---------------------------------------------------------------------------------------------------------------------
 # N8N MAIN TASK DEFINITION
@@ -83,8 +28,8 @@ resource "aws_ecs_task_definition" "n8n" {
   tags = {
     Version = "v6"
   }
-  execution_role_arn       = aws_iam_role.ecs_task_execution.arn
-  task_role_arn           = aws_iam_role.ecs_task.arn
+  execution_role_arn       = var.ecs_task_execution_role_arn
+  task_role_arn           = var.ecs_task_role_arn
 
   container_definitions = jsonencode([
     {
@@ -110,7 +55,7 @@ resource "aws_ecs_task_definition" "n8n" {
         },
         {
           name  = "DB_POSTGRESDB_HOST"
-          value = aws_db_instance.n8n.address  # RDS endpoint
+          value = var.rds_endpoint  # RDS endpoint
         },
         {
           name  = "DB_POSTGRESDB_PORT"
@@ -150,19 +95,19 @@ resource "aws_ecs_task_definition" "n8n" {
       secrets = [
         {
           name      = "DB_POSTGRESDB_DATABASE"
-          valueFrom = "${aws_secretsmanager_secret.n8n_secrets.arn}:postgres_db::"
+          valueFrom = "${var.n8n_secrets_arn}:postgres_db::"
         },
         {
           name      = "DB_POSTGRESDB_USER"
-          valueFrom = "${aws_secretsmanager_secret.n8n_secrets.arn}:postgres_user::"
+          valueFrom = "${var.n8n_secrets_arn}:postgres_user::"
         },
         {
           name      = "DB_POSTGRESDB_PASSWORD"
-          valueFrom = "${aws_secretsmanager_secret.n8n_secrets.arn}:postgres_password::"
+          valueFrom = "${var.n8n_secrets_arn}:postgres_password::"
         },
         {
           name      = "N8N_ENCRYPTION_KEY"
-          valueFrom = "${aws_secretsmanager_secret.n8n_secrets.arn}:encryption_key::"
+          valueFrom = "${var.n8n_secrets_arn}:encryption_key::"
         }
       ]
 
@@ -193,11 +138,11 @@ resource "aws_ecs_task_definition" "n8n" {
     name = "n8n-storage"
 
     efs_volume_configuration {
-      file_system_id          = aws_efs_file_system.n8n_storage.id
+      file_system_id          = var.efs_file_system_id
       root_directory          = "/"
       transit_encryption      = "ENABLED"
       authorization_config {
-        access_point_id = aws_efs_access_point.n8n_data.id
+        access_point_id = var.efs_access_point_id
         iam            = "ENABLED"
       }
     }
@@ -214,8 +159,8 @@ resource "aws_ecs_task_definition" "n8n_worker" {
   requires_compatibilities = ["FARGATE"]
   cpu                      = var.n8n_worker_cpu
   memory                   = var.n8n_worker_memory
-  execution_role_arn       = aws_iam_role.ecs_task_execution.arn
-  task_role_arn           = aws_iam_role.ecs_task.arn
+  execution_role_arn       = var.ecs_task_execution_role_arn
+  task_role_arn           = var.ecs_task_role_arn
 
   container_definitions = jsonencode([
     {
@@ -234,7 +179,7 @@ resource "aws_ecs_task_definition" "n8n_worker" {
         },
         {
           name  = "DB_POSTGRESDB_HOST"
-          value = aws_db_instance.n8n.address  # RDS endpoint
+          value = var.rds_endpoint  # RDS endpoint
         },
         {
           name  = "DB_POSTGRESDB_PORT"
@@ -273,19 +218,19 @@ resource "aws_ecs_task_definition" "n8n_worker" {
       secrets = [
         {
           name      = "DB_POSTGRESDB_DATABASE"
-          valueFrom = "${aws_secretsmanager_secret.n8n_secrets.arn}:postgres_db::"
+          valueFrom = "${var.n8n_secrets_arn}:postgres_db::"
         },
         {
           name      = "DB_POSTGRESDB_USER"
-          valueFrom = "${aws_secretsmanager_secret.n8n_secrets.arn}:postgres_user::"
+          valueFrom = "${var.n8n_secrets_arn}:postgres_user::"
         },
         {
           name      = "DB_POSTGRESDB_PASSWORD"
-          valueFrom = "${aws_secretsmanager_secret.n8n_secrets.arn}:postgres_password::"
+          valueFrom = "${var.n8n_secrets_arn}:postgres_password::"
         },
         {
           name      = "N8N_ENCRYPTION_KEY"
-          valueFrom = "${aws_secretsmanager_secret.n8n_secrets.arn}:encryption_key::"
+          valueFrom = "${var.n8n_secrets_arn}:encryption_key::"
         }
       ]
 
@@ -314,11 +259,11 @@ resource "aws_ecs_task_definition" "n8n_worker" {
     name = "n8n-storage"
 
     efs_volume_configuration {
-      file_system_id          = aws_efs_file_system.n8n_storage.id
+      file_system_id          = var.efs_file_system_id
       root_directory          = "/"
       transit_encryption      = "ENABLED"
       authorization_config {
-        access_point_id = aws_efs_access_point.n8n_data.id
+        access_point_id = var.efs_access_point_id
         iam            = "ENABLED"
       }
     }
@@ -330,24 +275,7 @@ resource "aws_ecs_task_definition" "n8n_worker" {
 # These manage running instances of our task definitions
 # ---------------------------------------------------------------------------------------------------------------------
 
-# Redis Service
-resource "aws_ecs_service" "redis" {
-  name            = "${var.cluster_name}-redis"
-  cluster         = aws_ecs_cluster.n8n.id
-  task_definition = aws_ecs_task_definition.redis.arn
-  desired_count   = 1
-  launch_type     = "FARGATE"
-
-  network_configuration {
-    subnets          = var.private_subnet_ids
-    security_groups  = [aws_security_group.ecs_tasks.id]
-    assign_public_ip = true
-  }
-
-  service_registries {
-    registry_arn = aws_service_discovery_service.redis.arn
-  }
-}
+# Redis service removed - using RDS PostgreSQL instead
 
 # N8N Main Service
 resource "aws_ecs_service" "n8n" {
@@ -359,21 +287,17 @@ resource "aws_ecs_service" "n8n" {
 
   network_configuration {
     subnets          = var.private_subnet_ids
-    security_groups  = [aws_security_group.ecs_tasks.id]
+    security_groups  = [var.n8n_security_group_id]
     assign_public_ip = true
   }
 
   load_balancer {
-    target_group_arn = aws_lb_target_group.n8n.arn
+    target_group_arn = var.alb_target_group_arn
     container_name   = "n8n"
     container_port   = 5678
   }
 
-  depends_on = [
-    aws_lb_listener.n8n,
-    aws_ecs_service.redis,
-    aws_db_instance.n8n
-  ]
+  # Dependencies managed by module orchestration
 }
 
 # N8N Worker Service
@@ -386,13 +310,12 @@ resource "aws_ecs_service" "n8n_worker" {
 
   network_configuration {
     subnets          = var.private_subnet_ids
-    security_groups  = [aws_security_group.ecs_tasks.id]
+    security_groups  = [var.n8n_security_group_id]
     assign_public_ip = true
   }
 
   depends_on = [
-    aws_ecs_service.redis,
     aws_ecs_service.n8n,
-    aws_db_instance.n8n
+    # RDS dependency managed by module orchestration
   ]
 }

@@ -11,10 +11,10 @@ This phase demonstrates deploying n8n on ECS using EC2 instances with managed El
 - **Control**: More infrastructure control and configuration options
 
 ### What You'll Learn
-1. **ECS Capacity Providers**: Mix On-Demand and Spot instances
+1. **ECS Capacity Providers**: Manage EC2 instances for ECS
 2. **Instance Auto Scaling**: Infrastructure-level scaling vs container-level
 3. **ElastiCache Redis**: Managed Redis with high availability
-4. **Cost Optimization**: Spot instances and right-sizing strategies
+4. **Cost Optimization**: Right-sizing strategies and instance management
 5. **Hybrid Architecture**: Mix of managed services and containers
 
 ## 🏗️ Architecture Overview
@@ -42,9 +42,9 @@ Persistent Storage: EFS (shared across instances)
 ### 1. **ECS Capacity Providers**
 - **What**: Manages how ECS scales EC2 instances
 - **Benefits**: 
-  - Mix On-Demand (reliable) and Spot (cheap) instances
+  - On-Demand instances for reliable infrastructure
   - Automatic instance scaling based on task demand
-  - Cost optimization while maintaining availability
+  - Predictable costs and performance
 
 ### 2. **ElastiCache Redis**
 - **What**: AWS-managed Redis service
@@ -84,14 +84,10 @@ cp terraform.tfvars.example terraform.tfvars
 Key new variables for Phase 2:
 ```hcl
 # EC2 Configuration
-instance_type = "t3.medium"      # Instance type for ECS cluster
-min_size      = 1                # Minimum instances
-max_size      = 3                # Maximum instances
-desired_size  = 2                # Desired instances
-
-# Spot instance configuration (cost savings)
-spot_instance_percentage = 50    # 50% spot instances
-spot_max_price          = "0.05" # Maximum price per hour
+instance_type    = "t3.medium"      # Instance type for ECS cluster
+min_size         = 1                # Minimum instances
+max_size         = 3                # Maximum instances
+desired_capacity = 2                # Desired instances
 
 # ElastiCache Configuration  
 redis_node_type              = "cache.t4g.micro"  # Redis instance type
@@ -110,13 +106,13 @@ terraform apply
 ### 5. Monitor Deployment
 ```bash
 # Check ECS cluster
-aws ecs describe-clusters --clusters n8n-cluster
+aws ecs describe-clusters --clusters n8n-hs-cluster
 
 # Check ElastiCache  
-aws elasticache describe-replication-groups --replication-group-id n8n-cluster-redis
+aws elasticache describe-replication-groups --replication-group-id n8n-hs-cluster-redis
 
 # Check Auto Scaling Group
-aws autoscaling describe-auto-scaling-groups --auto-scaling-group-names n8n-cluster-asg
+aws autoscaling describe-auto-scaling-groups --auto-scaling-group-names n8n-hs-cluster-asg
 ```
 
 ## 💰 Cost Analysis
@@ -124,8 +120,7 @@ aws autoscaling describe-auto-scaling-groups --auto-scaling-group-names n8n-clus
 ### Expected Monthly Costs (us-east-1)
 
 **EC2 Instances (2 × t3.medium)**
-- On-Demand: $60.72/month  
-- 50% Spot: ~$35/month (varies with spot prices)
+- On-Demand: $60.72/month
 
 **ElastiCache Redis (cache.t4g.micro)**
 - $13.14/month
@@ -135,13 +130,13 @@ aws autoscaling describe-auto-scaling-groups --auto-scaling-group-names n8n-clus
 - ALB: $18.25/month  
 - Data transfer: ~$5/month
 
-**Total: ~$75-95/month** (vs ~$120/month for equivalent Fargate)
+**Total: ~$100/month** (vs ~$120/month for equivalent Fargate)
 
 ### Cost Optimization Tips
-1. **Use Spot Instances**: 50-70% cost savings
-2. **Right-size instances**: Monitor CPU/memory usage
-3. **Schedule scaling**: Scale down during off-hours
-4. **Reserved Instances**: 30-60% savings for predictable workloads
+1. **Right-size instances**: Monitor CPU/memory usage and adjust instance types
+2. **Schedule scaling**: Scale down during off-hours using scheduled actions
+3. **Reserved Instances**: 30-60% savings for predictable workloads
+4. **Monitor ElastiCache**: Right-size Redis instances based on usage
 
 ## 🔧 Configuration Options
 
@@ -185,10 +180,10 @@ aws autoscaling describe-auto-scaling-groups --auto-scaling-group-names n8n-clus
 **1. Tasks not placing on instances**
 ```bash
 # Check cluster capacity
-aws ecs describe-clusters --clusters n8n-cluster --include ATTACHMENTS
+aws ecs describe-clusters --clusters n8n-hs-cluster --include ATTACHMENTS
 
 # Check service events
-aws ecs describe-services --cluster n8n-cluster --services n8n-service
+aws ecs describe-services --cluster n8n-hs-cluster --services n8n-hs-service
 ```
 
 **2. ElastiCache connection issues**
@@ -199,10 +194,10 @@ aws ecs describe-services --cluster n8n-cluster --services n8n-service
 **3. Auto Scaling not working**
 ```bash
 # Check scaling policies
-aws autoscaling describe-policies --auto-scaling-group-name n8n-cluster-asg
+aws autoscaling describe-policies --auto-scaling-group-name n8n-hs-cluster-asg
 
 # Check CloudWatch alarms
-aws cloudwatch describe-alarms --alarm-names n8n-cluster-*
+aws cloudwatch describe-alarms --alarm-names n8n-hs-cluster-*
 ```
 
 ### Useful Commands
@@ -215,7 +210,7 @@ docker logs ecs-agent
 
 # Check ElastiCache endpoint
 aws elasticache describe-replication-groups \
-  --replication-group-id n8n-cluster-redis \
+  --replication-group-id n8n-hs-cluster-redis \
   --query 'ReplicationGroups[0].NodeGroups[0].PrimaryEndpoint'
 ```
 
@@ -223,7 +218,7 @@ aws elasticache describe-replication-groups \
 
 - [ ] **N8N deployed on EC2 instances** instead of Fargate
 - [ ] **ElastiCache Redis working** for queue management
-- [ ] **Mixed capacity**: Both On-Demand and Spot instances running
+- [ ] **On-Demand instances**: Reliable infrastructure running predictably
 - [ ] **Auto Scaling**: Instances scale based on ECS task demand
 - [ ] **Cost comparison**: Understand cost differences vs Phase 1
 - [ ] **Monitor hybrid metrics**: Both container and infrastructure metrics
@@ -234,11 +229,11 @@ After completing Phase 2:
 
 1. **Experiment with scaling**
    - Add load to trigger auto-scaling
-   - Test spot instance interruption handling
+   - Test instance scaling behavior
    
 2. **Cost optimization**
    - Try different instance types
-   - Adjust spot instance percentage
+   - Explore Reserved Instance options
    
 3. **Performance testing**
    - Compare Redis performance vs Phase 1

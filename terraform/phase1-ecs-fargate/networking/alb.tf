@@ -7,7 +7,7 @@ resource "aws_lb" "n8n" {
   name               = "${var.cluster_name}-alb"
   internal           = false
   load_balancer_type = "application"
-  security_groups    = [aws_security_group.alb.id]
+  security_groups    = [var.alb_security_group_id]
   subnets           = var.public_subnet_ids
 
   enable_deletion_protection = false

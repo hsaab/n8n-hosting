@@ -10,6 +10,8 @@
 *.tfstate
 *.tfstate.backup
 *.tfstate.lock.info
+terraform.tfstate*
+.terraform.tfstate.lock.info
 
 # Terraform plan files
 *.tfplan
@@ -41,7 +43,6 @@ docker-compose.override.yaml
 # AWS credentials
 .aws/
 **/credentials
-**/config
 
 # Cloud provider CLI configs
 .azure/
@@ -139,6 +140,13 @@ secrets.json
 # ---------------------------------------------------------------------------------------------------------------------
 # PROJECT SPECIFIC FILES
 # ---------------------------------------------------------------------------------------------------------------------
+
+# Terraform specific paths
+terraform/**/terraform.tfvars
+terraform/**/terraform.tfstate*
+terraform/**/.terraform/
+terraform/**/.terraform.lock.hcl
+terraform/**/.terraform.tfstate.lock.info
 
 # Node.js (if using any Node.js tools)
 node_modules/
